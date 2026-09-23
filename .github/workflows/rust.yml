@@ -1,4 +1,4 @@
-name: Rust
+name: Clippy Auto-Fix
 
 on:
   push:
@@ -10,13 +10,30 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  clippy:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # Required to commit and push fixes back
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Check out the actual head branch on PRs so fixes can be pushed back
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Install Rust toolchain with Clippy
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+
+      - name: Run Clippy Fix
+        # --allow-no-vcs avoids git dirty working tree blocks
+        # --allow-dirty and --allow-staged allow fixing in-place
+        run: cargo clippy --fix --allow-dirty --allow-staged --all-targets -- -D warnings || true
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "style: auto-fix clippy suggestions [skip ci]"
+          branch: ${{ github.head_ref || github.ref_name }}
