@@ -9,6 +9,6 @@ impl In {
     }
 
     fn next<T: std::str::FromStr>(&mut self) -> T {
-        self.0.next().and_then(|s| s.parse().ok()).unwrap()
+        self.0.next().unwrap().parse().ok().unwrap()
     }
 }
